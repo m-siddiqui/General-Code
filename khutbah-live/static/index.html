@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Khutbah Live</title>
+<style>
+  :root {
+    --bg: #f4f2ee; --card: #ffffff; --text: #1d1d1b; --muted: #6b6862; --line: #e3dfd8;
+    --go: #1f7a4d; --go-text: #ffffff; --end: #b3261e; --end-text: #ffffff;
+    --live: #d93025; --warn-bg: #fdecea; --warn-text: #8a1c14; --accent: #1f7a4d; --on-accent: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141413; --card: #1f1e1c; --text: #f0eee9; --muted: #a29e96; --line: #34322e;
+      --go: #2e9b65; --end: #d0453b; --live: #ff5a4f; --warn-bg: #3a1d1a; --warn-text: #ffb4ab; --accent: #4cc38a; --on-accent: #0f2419;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; margin: 4px 0 16px; display: flex; align-items: center; justify-content: space-between; }
+  .badge { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--line); color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .state { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--muted); flex: none; }
+  .live .dot { background: var(--live); animation: pulse 1.4s infinite; }
+  .busy .dot { background: #e8a33d; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .sub { color: var(--muted); font-size: 14px; margin-top: 4px; overflow-wrap: anywhere; }
+  .error { background: var(--warn-bg); color: var(--warn-text); border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
+  button { font: inherit; border: 0; border-radius: 12px; cursor: pointer; }
+  .big { width: 100%; padding: 20px; font-size: 20px; font-weight: 700; margin-top: 14px; }
+  .go { background: var(--go); color: var(--go-text); }
+  .end { background: var(--end); color: var(--end-text); }
+  .big:disabled { opacity: .45; cursor: default; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 12px 0 4px; }
+  input, textarea { width: 100%; font: inherit; color: var(--text); background: var(--bg);
+                    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  textarea { min-height: 90px; resize: vertical; }
+  .save { background: var(--accent); color: var(--on-accent); padding: 10px 16px; margin-top: 12px; font-weight: 600; }
+  .preview { white-space: pre-wrap; font-size: 14px; background: var(--bg); border-radius: 10px; padding: 10px 12px; margin-top: 6px; overflow-wrap: anywhere; }
+  .links a { display: inline-block; margin: 8px 12px 0 0; color: var(--accent); font-weight: 600; }
+  details summary { cursor: pointer; font-weight: 600; }
+  .log { font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; color: var(--muted); margin-top: 8px; overflow-wrap: anywhere; }
+  .hist { font-size: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .hist:first-of-type { border-top: 0; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--text); color: var(--bg);
+           padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Khutbah Live <span class="badge" id="mode" hidden>DRY RUN</span></h1>
+
+  <section class="card" id="stateCard">
+    <div class="state"><span class="dot"></span><span id="stateText">Connecting…</span></div>
+    <div class="sub" id="stateSub"></div>
+    <div class="links" id="links"></div>
+    <div class="error" id="error" hidden></div>
+    <button class="big go" id="goBtn" disabled>Go Live</button>
+    <button class="big end" id="endBtn" hidden>End Stream</button>
+  </section>
+
+  <section class="card">
+    <strong>This week's khutbah</strong>
+    <form id="nextForm">
+      <label for="speaker">Speaker</label>
+      <input id="speaker" name="speaker" autocomplete="off" placeholder="e.g. Imam Abdullah">
+      <label for="topic">Topic</label>
+      <input id="topic" name="topic" autocomplete="off" placeholder="e.g. Gratitude in hardship">
+      <details style="margin-top:12px">
+        <summary>Custom title or description (optional)</summary>
+        <label for="title">Title (leave blank to use the template)</label>
+        <input id="title" name="title" maxlength="100" autocomplete="off">
+        <label for="description">Description (leave blank to use the template)</label>
+        <textarea id="description" name="description"></textarea>
+      </details>
+      <button class="save" type="submit">Save</button>
+    </form>
+    <label>Title &amp; description that will be used</label>
+    <div class="preview" id="preview"></div>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>Recent khutbahs &amp; activity log</summary>
+      <div id="history" style="margin-top:8px"></div>
+      <div class="log" id="log"></div>
+      <button class="save" id="forgetKey" type="button" style="background:var(--line);color:var(--text)">Forget access key on this phone</button>
+    </details>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let key = "";
+try { key = localStorage.getItem("khutbahKey") || ""; } catch (e) {}
+let snap = null, formDirty = false, timer = null;
+
+function askKey() {
+  key = (prompt("Access key (from config.json on the Mac Studio):") || "").trim();
+  try { localStorage.setItem("khutbahKey", key); } catch (e) {}
+}
+if (!key) askKey();
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: body === undefined && path === "/api/status" ? "GET" : "POST",
+    headers: { "X-Access-Key": key, "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (res.status === 401) { askKey(); throw new Error("Wrong access key"); }
+  return res.json();
+}
+
+function fmtElapsed(startedAt) {
+  const s = Math.max(0, Math.floor(Date.now() / 1000 - startedAt));
+  const m = Math.floor(s / 60), r = String(s % 60).padStart(2, "0");
+  return `${m}:${r}`;
+}
+
+function render(s) {
+  snap = s;
+  $("mode").hidden = !s.dryRun;
+  const card = $("stateCard");
+  card.className = "card " + (s.status === "live" ? "live" : (s.status === "starting" || s.status === "stopping") ? "busy" : "");
+  const labels = { idle: "Not live", starting: "Going live…", live: "LIVE", stopping: "Ending…" };
+  $("stateText").textContent = labels[s.status] || s.status;
+
+  clearInterval(timer);
+  if (s.session) {
+    const tick = () => $("stateSub").textContent = `${s.session.title} · ${fmtElapsed(s.session.startedAt)}`;
+    tick(); timer = setInterval(tick, 1000);
+    $("links").innerHTML = "";
+    for (const [name, p] of Object.entries(s.session.platforms || {})) {
+      const a = document.createElement("a");
+      a.href = p.url; a.target = "_blank"; a.rel = "noopener";
+      a.textContent = name === "youtube" ? "Open on YouTube" : "Open on Facebook";
+      $("links").appendChild(a);
+    }
+  } else {
+    $("stateSub").textContent = `Will stream to: ${s.platforms.join(" & ") || "nothing (check config)"}`;
+    $("links").innerHTML = "";
+  }
+
+  $("error").hidden = !s.error;
+  $("error").textContent = s.error;
+  $("goBtn").hidden = s.status === "live" || s.status === "stopping";
+  $("goBtn").disabled = s.status !== "idle";
+  $("endBtn").hidden = !(s.status === "live" || s.status === "stopping");
+  $("endBtn").disabled = s.status !== "live";
+
+  if (!formDirty) {
+    for (const f of ["speaker", "topic", "title", "description"]) $(f).value = s.next[f] || "";
+  }
+  $("preview").textContent = `${s.preview.title}\n\n${s.preview.description}`;
+
+  $("history").innerHTML = "";
+  for (const h of s.history) {
+    const d = document.createElement("div"); d.className = "hist";
+    const when = new Date(h.startedAt * 1000).toLocaleDateString();
+    d.textContent = `${when} · ${h.minutes} min · ${h.title}`;
+    for (const [name, url] of Object.entries(h.links)) {
+      const a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener";
+      a.textContent = " " + name; a.style.color = "var(--accent)"; d.appendChild(a);
+    }
+    $("history").appendChild(d);
+  }
+  $("log").textContent = s.log.join("\n");
+}
+
+async function refresh() {
+  try { render(await api("/api/status")); }
+  catch (e) { $("stateText").textContent = "Can't reach the Mac Studio"; $("stateSub").textContent = e.message; }
+}
+
+$("goBtn").onclick = async () => {
+  if (formDirty) await saveNext();
+  const r = await api("/api/start", {}); toast(r.message); refresh();
+};
+$("endBtn").onclick = async () => {
+  if (!confirm("End the stream on all platforms?")) return;
+  const r = await api("/api/stop", {}); toast(r.message); refresh();
+};
+async function saveNext() {
+  const body = {};
+  for (const f of ["speaker", "topic", "title", "description"]) body[f] = $(f).value;
+  formDirty = false;
+  render(await api("/api/next", body));
+  toast("Saved");
+}
+$("nextForm").onsubmit = (e) => { e.preventDefault(); saveNext(); };
+$("nextForm").oninput = () => { formDirty = true; };
+$("forgetKey").onclick = () => { try { localStorage.removeItem("khutbahKey"); } catch (e) {} askKey(); refresh(); };
+
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

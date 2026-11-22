@@ -1,0 +1,41 @@
+{
+  "accessKey": "change-me",
+  "listenHost": "0.0.0.0",
+  "listenPort": 8080,
+  "dryRun": false,
+  "maxDurationMinutes": 75,
+
+  "templates": {
+    "titleParts": ["Jumu'ah Khutbah", "{topic}", "{speaker}", "{date}"],
+    "titleSeparator": " | ",
+    "descriptionLines": [
+      "Jumu'ah khutbah at ISNWO, {date}.",
+      "Speaker: {speaker}",
+      "Topic: {topic}",
+      "",
+      "Subscribe and follow for weekly khutbahs."
+    ]
+  },
+  "dateFormat": "%d %B %Y",
+
+  "obs": {
+    "host": "localhost",
+    "port": 4455,
+    "password": "PASTE-OBS-WEBSOCKET-PASSWORD",
+    "launchIfClosed": true,
+    "appName": "OBS"
+  },
+  "relay": {
+    "port": 1935,
+    "backupDir": "recordings"
+  },
+  "youtube": {
+    "enabled": true,
+    "privacy": "public",
+    "playlistId": ""
+  },
+  "facebook": {
+    "enabled": true,
+    "graphApiVersion": "v25.0"
+  }
+}
