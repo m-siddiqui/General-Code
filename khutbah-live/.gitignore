@@ -1,0 +1,4 @@
+config.json
+data/
+recordings/
+__pycache__/
