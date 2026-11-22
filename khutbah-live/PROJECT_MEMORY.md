@@ -70,4 +70,5 @@ Gitignored: `config.json`, `data/` (secrets, state, logs), `recordings/`.
 ## Other context
 - The repo also has `obs-scheduled-recording/`, an earlier script that schedules OBS recordings with `obsws-python`.
 - A cloud session tried to reach the Mac through Remote Control. The Mac ("Mac.lan", folder "Khutbah Live") was listed but not offered to cloud sessions (reason unknown: folder location, app version or feature availability). That's why the work moved to a local session.
+- Pull request: https://github.com/m-siddiqui/General-Code/pull/1 (from this branch; new commits pushed to the branch update it).
 - Commit and push only on the branch above. Don't commit `config.json`, `data/` or `recordings/`.
